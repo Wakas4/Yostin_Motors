@@ -25,6 +25,19 @@ public class ClientesController : ControllerBase
         return c is null ? NotFound() : Ok(c);
     }
 
+        // PR DE PRÁCTICA: mismo método HTTP (POST) y misma ruta (api/clientes) que Post()
+    [HttpPost]
+    public async Task<ActionResult<Cliente>> CrearCliente(Cliente cliente)
+    {
+        cliente.IdCliente = 0;
+        cliente.FechaRegistro = DateTime.UtcNow;
+        cliente.Activo = true;
+
+        _db.Clientes.Add(cliente);
+        await _db.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetPorId), new { id = cliente.IdCliente }, cliente);
+    }
+
     [HttpPost]
     public async Task<ActionResult<Cliente>> Post(Cliente cliente)
     {
