@@ -14,15 +14,16 @@ public class PedidosController : ControllerBase
     private readonly AppDbContext _db;
     public PedidosController(AppDbContext db) => _db = db;
 
-    [HttpGet]
+        [HttpGet]
     public async Task<ActionResult<IEnumerable<Pedido>>> GetLista()
-        => Ok(await _db.Pedidos.AsNoTracking().ToListAsync());
+        => Ok(await _db.Pedidos.AsNoTracking().Where(x => x.Activo).ToListAsync());
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<Pedido>> GetPorId(int id)
     {
-        var p = await _db.Pedidos.AsNoTracking().FirstOrDefaultAsync(x => x.IdPedido == id);
-        return p is null ? NotFound() : Ok(p);
+        var c = await _db.Pedidos.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IdPedido == id && x.Activo);
+        return c is null ? NotFound() : Ok(c);
     }
 
     [HttpPost]
@@ -62,5 +63,15 @@ public class PedidosController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(p);
+    }
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var c = await _db.Pedidos.FirstOrDefaultAsync(x => x.IdPedido == id && x.Activo);
+        if (c is null) return NotFound(new { mensaje = "Pedido no encontrado o ya inactivo." });
+
+        c.Activo = false;   // soft delete: la fila se conserva
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 }

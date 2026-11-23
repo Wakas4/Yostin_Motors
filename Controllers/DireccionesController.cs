@@ -16,13 +16,14 @@ public class DireccionesController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Direccion>>> GetLista()
-        => Ok(await _db.Direcciones.AsNoTracking().ToListAsync());
+        => Ok(await _db.Direcciones.AsNoTracking().Where(x => x.Activo).ToListAsync());
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<Direccion>> GetPorId(int id)
     {
-        var d = await _db.Direcciones.AsNoTracking().FirstOrDefaultAsync(x => x.IdDireccion == id);
-        return d is null ? NotFound() : Ok(d);
+        var c = await _db.Direcciones.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IdDireccion == id && x.Activo);
+        return c is null ? NotFound() : Ok(c);
     }
 
     [HttpPost]
@@ -57,5 +58,16 @@ public class DireccionesController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(d);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var c = await _db.Direcciones.FirstOrDefaultAsync(x => x.IdDireccion == id && x.Activo);
+        if (c is null) return NotFound(new { mensaje = "Direccion no encontrada o ya inactiva." });
+
+        c.Activo = false;   // soft delete: la fila se conserva
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 }

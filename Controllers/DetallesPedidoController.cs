@@ -16,13 +16,14 @@ public class DetallesPedidoController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DetallePedido>>> GetLista()
-        => Ok(await _db.DetallesPedido.AsNoTracking().ToListAsync());
+        => Ok(await _db.DetallesPedido.AsNoTracking().Where(x => x.Activo).ToListAsync());
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<DetallePedido>> GetPorId(int id)
     {
-        var d = await _db.DetallesPedido.AsNoTracking().FirstOrDefaultAsync(x => x.IdDetalle == id);
-        return d is null ? NotFound() : Ok(d);
+        var c = await _db.DetallesPedido.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IdDetalle == id && x.Activo);
+        return c is null ? NotFound() : Ok(c);
     }
 
     [HttpPost]
@@ -62,5 +63,16 @@ public class DetallesPedidoController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(d);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var c = await _db.DetallesPedido.FirstOrDefaultAsync(x => x.IdDetalle == id && x.Activo);
+        if (c is null) return NotFound(new { mensaje = "Detalle no encontrado o ya inactivo." });
+
+        c.Activo = false;   // soft delete: la fila se conserva
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 }
