@@ -36,4 +36,19 @@ public class ClientesController : ControllerBase
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetPorId), new { id = cliente.IdCliente }, cliente);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Put(int id, Cliente datos)
+    {
+        var c = await _db.Clientes.FirstOrDefaultAsync(x => x.IdCliente == id && x.Activo);
+        if (c is null) return NotFound(new { mensaje = "Cliente no encontrado o inactivo." });
+
+        c.Nombre = datos.Nombre;
+        c.Apellido = datos.Apellido;
+        c.Correo = datos.Correo;
+        c.Telefono = datos.Telefono;
+
+        await _db.SaveChangesAsync();
+        return Ok(c);
+    }
 }

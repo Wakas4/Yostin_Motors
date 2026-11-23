@@ -42,4 +42,25 @@ public class PedidosController : ControllerBase
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetPorId), new { id = pedido.IdPedido }, pedido);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Put(int id, Pedido datos)
+    {
+        var p = await _db.Pedidos.FirstOrDefaultAsync(x => x.IdPedido == id && x.Activo);
+        if (p is null) return NotFound(new { mensaje = "Pedido no encontrado o inactivo." });
+
+        if (!await _db.Clientes.AnyAsync(c => c.IdCliente == datos.IdCliente && c.Activo))
+            return BadRequest(new { mensaje = "El cliente indicado no existe o está inactivo." });
+
+        if (!await _db.Direcciones.AnyAsync(d => d.IdDireccion == datos.IdDireccion && d.Activo))
+            return BadRequest(new { mensaje = "La dirección indicada no existe o está inactiva." });
+
+        p.IdCliente = datos.IdCliente;
+        p.IdDireccion = datos.IdDireccion;
+        p.Estado = datos.Estado;
+        p.Total = datos.Total;
+
+        await _db.SaveChangesAsync();
+        return Ok(p);
+    }
 }
