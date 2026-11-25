@@ -1,0 +1,21 @@
+# Etapa 1: compilar la aplicación con el SDK de .NET 10
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY ProyectoMotors.csproj ./
+RUN dotnet restore
+
+COPY . .
+RUN dotnet publish ProyectoMotors.csproj -c Release -o /app/publish --no-restore
+
+# Etapa 2: ejecutar la aplicación con ASP.NET Core Runtime 10
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+
+COPY --from=build /app/publish .
+
+# Puerto interno de la API
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "ProyectoMotors.dll"]
