@@ -54,6 +54,16 @@
       <table id="tablaReporte" hidden></table>
     </div>
   </section>
+
+  <section id="seccionInventario" hidden>
+    <h2>Reporte: inventario de productos</h2>
+    <p>Consulta de productos, categorías, marcas y disponibilidad.</p>
+    <button id="reporteInventario">Ver inventario</button>
+    <p id="estadoInventario"></p>
+    <div style="overflow:auto">
+      <table id="tablaInventario" hidden></table>
+    </div>
+  </section>
 </main>
 
 <script src="config.js"></script>
@@ -91,10 +101,14 @@
       $("login").hidden = true;
       $("sesion").hidden = false;
       $("seccionReporte").hidden = false;
+      $("seccionInventario").hidden = false;
     } else {
       $("login").hidden = false;
       $("sesion").hidden = true;
       $("seccionReporte").hidden = true;
+      $("seccionInventario").hidden = true;
+      $("tablaInventario").hidden = true;
+      $("estadoInventario").textContent = "";
       $("tablaReporte").hidden = true;
       $("estadoReporte").textContent = "";
     }
@@ -127,6 +141,69 @@
     tabla.innerHTML = "<tr><th>Cliente</th><th>Correo</th><th>Ciudad</th><th>Pedidos</th><th>Artículos</th><th>Monto total</th></tr>" +
       filas.map(f => `<tr><td>${f.cliente}</td><td>${f.correo}</td><td>${f.ciudad ?? "-"}</td><td>${f.totalPedidos}</td><td>${f.articulos}</td><td>${Number(f.montoTotal).toFixed(2)}</td></tr>`).join("");
     tabla.hidden = false;
+  });
+
+
+  $("reporteInventario").addEventListener("click", async () => {
+    const estado = $("estadoInventario");
+    const tabla = $("tablaInventario");
+
+    estado.textContent = "Consultando inventario...";
+    tabla.hidden = true;
+
+    try {
+      const r = await fetch(
+        `${API}/api/reportes/inventario-productos`,
+        { credentials: "include" }
+      );
+
+      if (!r.ok) {
+        estado.textContent = `HTTP ${r.status}: ` +
+          (r.status === 401
+            ? "debes iniciar sesión."
+            : r.status === 403
+              ? "solo Administrador puede consultar este reporte."
+              : "no se pudo obtener el reporte.");
+        return;
+      }
+
+      const filas = await r.json();
+      tabla.replaceChildren();
+
+      const encabezados = [
+        "Producto", "Categoría", "Marca", "Precio",
+        "Stock", "Stock mínimo", "Estado"
+      ];
+
+      const cabecera = document.createElement("tr");
+      encabezados.forEach(t => {
+        const th = document.createElement("th");
+        th.textContent = t;
+        cabecera.appendChild(th);
+      });
+      tabla.appendChild(cabecera);
+
+      filas.forEach(f => {
+        const tr = document.createElement("tr");
+        const valores = [
+          f.producto, f.categoria, f.marca, f.precio,
+          f.stock ?? "-", f.stockMinimo ?? "-", f.estadoStock
+        ];
+
+        valores.forEach(v => {
+          const td = document.createElement("td");
+          td.textContent = v == null ? "-" : String(v);
+          tr.appendChild(td);
+        });
+
+        tabla.appendChild(tr);
+      });
+
+      estado.textContent = `HTTP 200: ${filas.length} producto(s)`;
+      tabla.hidden = false;
+    } catch (error) {
+      estado.textContent = "Error de conexión con la API.";
+    }
   });
 
   cargarSesion();
